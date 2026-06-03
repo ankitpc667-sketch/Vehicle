@@ -4,7 +4,7 @@
  * Also manages cookies so Next.js middleware can do route protection.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://car-rental-backend-2iiile55e-ankit-kumar-das-projects1.vercel.app";
+const API_BASE = ""; // same domain when deployed
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;

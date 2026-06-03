@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "next.config.ts", "use": "@vercel/next" },
+    { "src": "car-rental-backend/server.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/car-rental-backend/server.js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}
