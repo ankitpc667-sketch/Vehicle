@@ -1,0 +1,16 @@
+{
+  "1780520534250": {
+    "_id": "1780520534250",
+    "name": "Rohit",
+    "email": "carrent9988@gmail.com",
+    "password": "Carrent@168",
+    "role": "customer"
+  },
+  "1780520611823": {
+    "_id": "1780520611823",
+    "name": "Amit",
+    "email": "carrent167@gmail.com",
+    "password": "Carrent@188",
+    "role": "driver"
+  }
+}

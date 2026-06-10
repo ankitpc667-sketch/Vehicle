@@ -1,7 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const connectToDatabase = require("./db");
+const connectToDatabase = require("./db"); // MongoDB connection enabled
 
 // Route imports
 const authRoutes = require("./routes/auth");
@@ -19,11 +19,7 @@ app.use((req, res, next) => {
 // ─── CORS ────────────────────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      process.env.FRONTEND_URL,
-    ].filter(Boolean),
+    origin: true, // Allow any origin (free tier, safe for demo)
     credentials: true,
   })
 );
@@ -39,15 +35,18 @@ app.get("/api/health", (req, res) => {
 });
 
 // ─── Database connection middleware for Vercel/serverless environments ──────────
-app.use(async (req, res, next) => {
-  try {
-    await connectToDatabase();
-    next();
-  } catch (err) {
-    console.error("❌ Database connection error in request middleware:", err.message);
-    next(err);
-  }
-});
+// ─── Database connection middleware (disabled for JSON storage) ──────────
+if (process.env.USE_JSON_STORAGE !== "true") {
+  app.use(async (req, res, next) => {
+    try {
+      await connectToDatabase();
+      next();
+    } catch (err) {
+      console.error("❌ Database connection error in request middleware:", err.message);
+      next(err);
+    }
+  });
+}
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);
@@ -67,16 +66,24 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 if (!process.env.VERCEL) {
-  connectToDatabase()
-    .then(() => {
-      app.listen(PORT, () => {
-        console.log(`🚀 Car Rental API running on http://localhost:${PORT}`);
+  if (process.env.USE_JSON_STORAGE !== "true") {
+    // Connect to MongoDB and start server
+    connectToDatabase()
+      .then(() => {
+        app.listen(PORT, () => {
+          console.log(`🚀 Car Rental API running on http://localhost:${PORT}`);
+        });
+      })
+      .catch((err) => {
+        console.error("❌ Failed to connect to MongoDB:", err.message);
+        process.exit(1);
       });
-    })
-    .catch((err) => {
-      console.error("❌ Failed to connect to MongoDB:", err.message);
-      process.exit(1);
+  } else {
+    // Start server without DB connection (JSON storage)
+    app.listen(PORT, () => {
+      console.log(`🚀 Car Rental API running (JSON storage) on http://localhost:${PORT}`);
     });
+  }
 }
 
 module.exports = app;

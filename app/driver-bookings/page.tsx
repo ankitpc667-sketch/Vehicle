@@ -142,7 +142,7 @@ export default function DriverBookings() {
         const newPending = filtered.filter(
           (b: any) => b.status === "pending" && !prevBookingIdsRef.current.has(b._id)
         );
-        if (newPending.length > 0 && prevBookingIdsRef.current.size > 0) {
+        if (newPending.length > 0) {
           setNewBookingPopup(newPending[0]);
         }
         prevBookingIdsRef.current = new Set(filtered.map((b: any) => b._id));
@@ -240,7 +240,7 @@ export default function DriverBookings() {
               </div>
               <p className="text-orange-600 font-semibold text-sm text-center">⏱ You have 5 minutes to respond!</p>
               <button
-                onClick={() => setNewBookingPopup(null)}
+                onClick={() => { setNewBookingPopup(null); router.push("/driver-bookings"); } }
                 className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:scale-105 transition-all"
               >
                 Go to View Bookings →
@@ -315,7 +315,6 @@ export default function DriverBookings() {
                         <h4 className="font-bold text-blue-800 mb-2">👤 Customer Details</h4>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <p><strong>Name:</strong> {customer?.name || booking.customerName || "—"}</p>
-                          <p><strong>Email:</strong> {customer?.email || "—"}</p>
                           {booking.customerPhone && <p><strong>Phone:</strong> {booking.customerPhone}</p>}
                           {booking.customerLicense && <p><strong>License:</strong> {booking.customerLicense}</p>}
                           {booking.customerAadhar && <p><strong>Aadhar:</strong> {booking.customerAadhar}</p>}

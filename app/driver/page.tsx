@@ -94,24 +94,15 @@ export default function AddVehicle() {
     try {
       const payload = {
         carName,
+        carNo,
         price,
         location,
         photo: photoPreview,
         withDriver,
-        // Optional fields sent only if withDriver is true or if they have values
-        carNo,
+        purpose,
         ...(withDriver
-          ? {
-            driverName,
-            aadharNo,
-            license,
-            experience,
-            phone,
-            purpose,
-          }
-          : {
-            purpose: "trip", // Default purpose for without driver
-          }),
+          ? { driverName, aadharNo, license, experience, phone }
+          : {}),
       };
 
       const res = await api.post("/api/vehicles", payload);
@@ -139,26 +130,10 @@ export default function AddVehicle() {
       </div>
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute top-0 left-0 w-[500px] h-[500px] rounded-full opacity-20 blur-3xl" style={{ background: "radial-gradient(circle, #6366f1 0%, transparent 70%)" }}></div>
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full opacity-20 blur-3xl" style={{ background: "radial-gradient(circle, #a855f7 0%, transparent 70%)" }}></div>
       </div>
       <div className="relative z-10 flex items-center justify-center">
         <div className="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-4xl">
-            <h1 className="text-3xl font-bold text-center mb-6">Add Your Vehicle</h1>
-            <button
-              onClick={() => router.push("/driver-dashboard")}
-              className="mt-4 px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 flex items-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-              </svg>
-              Back to Dashboard
-            </button>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
-            </div>
-          )}
+          
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -350,7 +325,6 @@ export default function AddVehicle() {
                 accept="image/*"
                 onChange={handlePhotoChange}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                required
               />
               {photoPreview && (
                 <img
@@ -370,20 +344,7 @@ export default function AddVehicle() {
             </button>
           </form>
 
-          {myVehicles.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-2xl font-semibold mb-4">Your Vehicles</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {myVehicles.map((v) => (
-                  <div key={v._id} className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow">
-                    <h3 className="font-bold text-lg">{v.carName}</h3>
-                    <p className="text-sm text-gray-600">{v.carNo}</p>
-                    <p className="text-sm text-gray-600 capitalize">{v.purpose}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     </div>

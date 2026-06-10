@@ -1,19 +1,15 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const storage = require("../lib/storage");
+const User = process.env.USE_JSON_STORAGE === "true" ? null : require("../models/User");
 
-/**
- * Middleware: Verify JWT token and attach user to req.user
- */
 const protect = async (req, res, next) => {
   try {
-    // 1. Try Authorization header first
     let token = null;
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.split(" ")[1];
     }
 
-    // 2. Fallback: read token from cookie
     if (!token && req.headers.cookie) {
       const cookies = Object.fromEntries(
         req.headers.cookie.split(";").map((c) => {
@@ -25,26 +21,23 @@ const protect = async (req, res, next) => {
     }
 
     if (!token) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Not authenticated. Please log in." });
+      return res.status(401).json({ success: false, message: "Not authenticated. Please log in." });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findById(decoded.id).select("-password");
+    const user = process.env.USE_JSON_STORAGE === "true"
+      ? await storage.findUserById(decoded.id)
+      : await User.findById(decoded.id).select("-password");
+
     if (!user) {
-      return res
-        .status(401)
-        .json({ success: false, message: "User no longer exists." });
+      return res.status(401).json({ success: false, message: "User no longer exists." });
     }
 
     req.user = user;
     next();
   } catch (err) {
-    return res
-      .status(401)
-      .json({ success: false, message: "Invalid or expired token." });
+    return res.status(401).json({ success: false, message: "Invalid or expired token." });
   }
 };
 

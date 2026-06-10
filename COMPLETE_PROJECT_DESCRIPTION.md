@@ -111,7 +111,7 @@ The entire system is built around **3 purposes** for renting a car:
 
 ### PAGE 5 — Customer Dashboard (`/customer-dashboard`)
 - A clean dashboard with 2 large clickable cards:
-  1. **Book Your Car** → Goes to the Book Car search form.
+  1. **Book Your Vehicle** → Goes to the Book Car search form.
   2. **My Bookings** → Goes to the customer's booking history.
 - Has a beautiful dark purple/indigo gradient background with glowing orb effects.
 

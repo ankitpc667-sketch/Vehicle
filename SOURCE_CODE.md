@@ -1235,7 +1235,7 @@ export default function CustomerDashboard() {
         <h1 className="text-4xl font-bold text-center mb-10 text-white">Customer Dashboard</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Book Your Car */}
+          {/* Book Your Vehicle */}
           <div
             onClick={() => router.push("/book-car")}
             className="cursor-pointer bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all hover:scale-105 active:scale-95 group"
@@ -1247,7 +1247,7 @@ export default function CustomerDashboard() {
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-center mb-2 text-gray-900">Book Your Car</h2>
+            <h2 className="text-2xl font-bold text-center mb-2 text-gray-900">Book Your Vehicle</h2>
             <p className="text-gray-500 text-center text-sm">Find and book available cars instantly</p>
             <div className="mt-4 flex items-center justify-center gap-1.5 text-blue-600 font-semibold text-sm opacity-0 group-hover:opacity-100 transition-opacity">
               Get Started

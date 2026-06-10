@@ -118,7 +118,7 @@ export default function BookCar() {
       </div>
       <div className="relative z-10 max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-10">
-          <h1 className="text-4xl font-bold text-white">Book Your Car</h1>
+          <h1 className="text-4xl font-bold text-white">Book Your Vehicle</h1>
           <button
             onClick={() => router.push("/my-bookings")}
             className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300"

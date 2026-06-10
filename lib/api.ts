@@ -4,7 +4,7 @@
  * Also manages cookies so Next.js middleware can do route protection.
  */
 
-const API_BASE = ""; // same domain when deployed
+const API_BASE = "";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;

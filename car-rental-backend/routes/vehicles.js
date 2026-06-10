@@ -1,6 +1,30 @@
 const express = require("express");
-const Vehicle = require("../models/Vehicle");
+const storage = require("../lib/storage");
 const { protect, restrictTo } = require("../middleware/auth");
+
+const useJson = process.env.USE_JSON_STORAGE === "true";
+
+const Vehicle = useJson ? {
+  find: (filter) => storage.getAllVehicles(filter),
+  findById: (id) => storage.getVehicleById(id),
+  create: (data) => storage.createVehicle(data),
+  findOne: async (filter) => {
+    const all = await storage.getAllVehicles();
+    return all.find(v => {
+      let match = true;
+      if (filter._id) match = match && v._id === filter._id;
+      if (filter.driverId) match = match && v.driverId === filter.driverId;
+      return match;
+    }) || null;
+  },
+  findOneAndDelete: async (filter) => {
+    const all = await storage.getAllVehicles();
+    const v = all.find(v => v._id === filter._id && v.driverId === filter.driverId);
+    if (!v) return null;
+    await storage.deleteVehicle(v._id);
+    return v;
+  },
+} : require("../models/Vehicle");
 
 const router = express.Router();
 
@@ -18,9 +42,10 @@ router.get("/", protect, async (req, res) => {
     if (req.query.withDriver) {
       filter.withDriver = req.query.withDriver === "true";
     }
-    let vehicles = await Vehicle.find(filter)
-      .populate("driverId", "name email")
-      .sort({ createdAt: -1 });
+    let vehicles = useJson
+      ? await Vehicle.find(filter)
+      : await Vehicle.find(filter).populate("driverId", "name email").sort({ createdAt: -1 });
+    if (useJson) vehicles = vehicles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     console.log(`[API /vehicles] Total vehicles fetched: ${vehicles.length}. Filter:`, filter);
     console.log(`[API /vehicles] Received pickupLocation query: "${req.query.pickupLocation}"`);
@@ -33,7 +58,7 @@ router.get("/", protect, async (req, res) => {
 
         // 1. Check if vehicle location is a substring of pickup location or vice-versa
         const isSubstring = vehicleLoc.includes(queryLoc) || queryLoc.includes(vehicleLoc);
-        
+
         // 2. Keyword overlap check for multi-word locations (e.g., "Kolkata" matching "Salt Lake, Kolkata")
         const queryWords = queryLoc.split(/[\s,.-]+/).filter((w) => w.length > 2);
         const vehicleWords = vehicleLoc.split(/[\s,.-]+/).filter((w) => w.length > 2);
@@ -61,9 +86,8 @@ router.get("/", protect, async (req, res) => {
  */
 router.get("/my", protect, restrictTo("driver"), async (req, res) => {
   try {
-    const vehicles = await Vehicle.find({ driverId: req.user._id }).sort({
-      createdAt: -1,
-    });
+    const all = await Vehicle.find({ driverId: String(req.user._id) });
+    const vehicles = all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.status(200).json({ success: true, vehicles });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -92,7 +116,7 @@ router.post("/", protect, restrictTo("driver"), async (req, res) => {
     } = req.body;
 
     const vehicle = await Vehicle.create({
-      driverId: req.user._id,
+      driverId: String(req.user._id),
       driverName,
       carName,
       carNo,
@@ -154,8 +178,10 @@ router.put("/:id", protect, restrictTo("driver"), async (req, res) => {
       }
     });
 
-    await vehicle.save();
-    res.status(200).json({ success: true, vehicle });
+    const updated = useJson
+      ? await storage.updateVehicle(req.params.id, vehicle)
+      : await vehicle.save();
+    res.status(200).json({ success: true, vehicle: updated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

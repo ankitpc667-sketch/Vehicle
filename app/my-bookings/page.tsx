@@ -151,7 +151,7 @@ export default function MyBookings() {
             onClick={() => router.push("/book-car")}
             className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-300"
           >
-            Book Your Car
+            Book Your Vehicle
           </button>
         </div>
 
