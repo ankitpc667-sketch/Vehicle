@@ -1,134 +1,165 @@
-import fs from "fs/promises";
-import path from "path";
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// ─── MongoDB Connection ───────────────────────────────────────────────────────
+let isConnected = false;
 
-async function readJson(file: string): Promise<Record<string, any>> {
-  try {
-    const raw = await fs.readFile(file, "utf8");
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
+async function connectDB() {
+  if (isConnected) return;
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error("MONGODB_URI is not defined");
+  await mongoose.connect(uri);
+  isConnected = true;
 }
 
-async function writeJson(file: string, data: unknown) {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  const tmp = file + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2), "utf8");
-  await fs.rename(tmp, file);
-}
+// ─── Schemas ──────────────────────────────────────────────────────────────────
+const UserSchema = new mongoose.Schema({
+  name: String,
+  email: { type: String, unique: true, lowercase: true },
+  password: String,
+  role: { type: String, enum: ["customer", "driver", "admin"], default: "customer" },
+}, { timestamps: true });
 
-const USERS_FILE = path.join(DATA_DIR, "users.json");
-const VEHICLES_FILE = path.join(DATA_DIR, "vehicles.json");
-const BOOKINGS_FILE = path.join(DATA_DIR, "bookings.json");
+const VehicleSchema = new mongoose.Schema({
+  driverId: String,
+  driverName: String,
+  carName: String,
+  carNo: String,
+  aadharNo: String,
+  license: String,
+  experience: String,
+  phone: String,
+  purpose: String,
+  price: String,
+  location: String,
+  photo: String,
+  withDriver: Boolean,
+}, { timestamps: true });
 
+const BookingSchema = new mongoose.Schema({
+  customerId: String,
+  vehicleId: { type: mongoose.Schema.Types.Mixed },
+  driverId: String,
+  purpose: String,
+  bookingDate: String,
+  withDriver: String,
+  status: { type: String, default: "pending" },
+  expiresAt: Date,
+}, { timestamps: true });
+
+// Prevent model re-registration in dev hot-reload
+const User = mongoose.models.User || mongoose.model("User", UserSchema);
+const Vehicle = mongoose.models.Vehicle || mongoose.model("Vehicle", VehicleSchema);
+const Booking = mongoose.models.Booking || mongoose.model("Booking", BookingSchema);
+
+// ─── User Functions ───────────────────────────────────────────────────────────
 export async function findUserByEmail(email: string) {
-  const users = await readJson(USERS_FILE);
-  return Object.values(users).find((u: any) => u.email.toLowerCase() === email.toLowerCase()) as any || null;
+  await connectDB();
+  return await User.findOne({ email: email.toLowerCase() }).lean();
 }
 
 export async function findUserById(id: string) {
-  const users = await readJson(USERS_FILE);
-  return (users[id] as any) || null;
+  await connectDB();
+  try {
+    return await User.findById(id).lean();
+  } catch {
+    return null;
+  }
 }
 
 export async function createUser(user: any) {
-  const users = await readJson(USERS_FILE);
-  const id = Date.now().toString();
-  const newUser = { _id: id, ...user };
-  users[id] = newUser;
-  await writeJson(USERS_FILE, users);
-  return newUser;
+  await connectDB();
+  const hashedPassword = await bcrypt.hash(user.password, 10);
+  const newUser = await User.create({ ...user, password: hashedPassword });
+  return newUser.toObject();
 }
 
-export function comparePassword(stored: string, supplied: string) {
-  return stored === supplied;
+export async function comparePassword(stored: string, supplied: string) {
+  return await bcrypt.compare(supplied, stored);
 }
 
+// ─── Vehicle Functions ────────────────────────────────────────────────────────
 export async function getAllVehicles(filter: Record<string, any> = {}) {
-  const vehicles = Object.values(await readJson(VEHICLES_FILE)) as any[];
-  return vehicles.filter((v) => {
-    let ok = true;
-    if (filter.purpose) ok = ok && v.purpose === filter.purpose;
-    if (filter.withDriver !== undefined) ok = ok && v.withDriver === filter.withDriver;
-    if (filter.driverId) ok = ok && v.driverId === filter.driverId;
-    return ok;
-  });
+  await connectDB();
+  const query: Record<string, any> = {};
+  if (filter.purpose) query.purpose = filter.purpose;
+  if (filter.withDriver !== undefined) query.withDriver = filter.withDriver;
+  if (filter.driverId) query.driverId = filter.driverId;
+  return await Vehicle.find(query).lean();
 }
 
 export async function getVehicleById(id: string) {
-  const vehicles = await readJson(VEHICLES_FILE);
-  return (vehicles[id] as any) || null;
+  await connectDB();
+  try {
+    return await Vehicle.findById(id).lean();
+  } catch {
+    return null;
+  }
 }
 
 export async function createVehicle(data: any) {
-  const vehicles = await readJson(VEHICLES_FILE);
-  const id = Date.now().toString();
-  const newVehicle = { _id: id, createdAt: new Date().toISOString(), ...data };
-  vehicles[id] = newVehicle;
-  await writeJson(VEHICLES_FILE, vehicles);
-  return newVehicle;
+  await connectDB();
+  const vehicle = await Vehicle.create(data);
+  return vehicle.toObject();
 }
 
 export async function updateVehicle(id: string, data: any) {
-  const vehicles = await readJson(VEHICLES_FILE);
-  if (!vehicles[id]) return null;
-  const updated = { ...vehicles[id], ...data, updatedAt: new Date().toISOString() };
-  vehicles[id] = updated;
-  await writeJson(VEHICLES_FILE, vehicles);
-  return updated;
+  await connectDB();
+  try {
+    return await Vehicle.findByIdAndUpdate(id, data, { new: true }).lean();
+  } catch {
+    return null;
+  }
 }
 
 export async function deleteVehicle(id: string) {
-  const vehicles = await readJson(VEHICLES_FILE);
-  const removed = vehicles[id] || null;
-  if (removed) {
-    delete vehicles[id];
-    await writeJson(VEHICLES_FILE, vehicles);
+  await connectDB();
+  try {
+    return await Vehicle.findByIdAndDelete(id).lean();
+  } catch {
+    return null;
   }
-  return removed;
 }
 
+// ─── Booking Functions ────────────────────────────────────────────────────────
 export async function getAllBookings(filter: Record<string, any> = {}) {
-  const bookings = Object.values(await readJson(BOOKINGS_FILE)) as any[];
-  return bookings.filter((b) => {
-    let ok = true;
-    if (filter.userId) ok = ok && b.customerId === filter.userId;
-    if (filter.vehicleId) ok = ok && b.vehicleId === filter.vehicleId;
-    return ok;
-  });
+  await connectDB();
+  const query: Record<string, any> = {};
+  if (filter.userId) query.customerId = filter.userId;
+  if (filter.vehicleId) query.vehicleId = filter.vehicleId;
+  if (filter.driverId) query.driverId = filter.driverId;
+  return await Booking.find(query).populate("vehicleId").lean();
 }
 
 export async function getBookingById(id: string) {
-  const bookings = await readJson(BOOKINGS_FILE);
-  return (bookings[id] as any) || null;
+  await connectDB();
+  try {
+    return await Booking.findById(id).populate("vehicleId").lean();
+  } catch {
+    return null;
+  }
 }
 
 export async function createBooking(data: any) {
-  const bookings = await readJson(BOOKINGS_FILE);
-  const id = Date.now().toString();
-  const newBooking = { _id: id, createdAt: new Date().toISOString(), ...data };
-  bookings[id] = newBooking;
-  await writeJson(BOOKINGS_FILE, bookings);
-  return newBooking;
+  await connectDB();
+  const booking = await Booking.create(data);
+  return await Booking.findById(booking._id).populate("vehicleId").lean();
 }
 
 export async function updateBooking(id: string, data: any) {
-  const bookings = await readJson(BOOKINGS_FILE);
-  if (!bookings[id]) return null;
-  const updated = { ...bookings[id], ...data, updatedAt: new Date().toISOString() };
-  bookings[id] = updated;
-  await writeJson(BOOKINGS_FILE, bookings);
-  return updated;
+  await connectDB();
+  try {
+    return await Booking.findByIdAndUpdate(id, data, { new: true }).populate("vehicleId").lean();
+  } catch {
+    return null;
+  }
 }
 
 export async function deleteBooking(id: string) {
-  const bookings = await readJson(BOOKINGS_FILE);
-  const removed = bookings[id] || null;
-  if (removed) {
-    delete bookings[id];
-    await writeJson(BOOKINGS_FILE, bookings);
+  await connectDB();
+  try {
+    return await Booking.findByIdAndDelete(id).lean();
+  } catch {
+    return null;
   }
-  return removed;
 }

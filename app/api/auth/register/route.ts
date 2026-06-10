@@ -19,12 +19,12 @@ export async function POST(req: NextRequest) {
       role: role === "driver" ? "driver" : "customer",
     });
 
-    const token = signToken(user._id);
+    const token = signToken(String(user._id));
     return NextResponse.json({
       success: true,
       message: "Registration successful!",
       token,
-      user: { _id: user._id, name: user.name, email: user.email, role: user.role },
+      user: { _id: String(user._id), name: user.name, email: user.email, role: user.role },
     }, { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });

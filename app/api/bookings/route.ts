@@ -6,17 +6,10 @@ export async function GET(req: NextRequest) {
   const user = await getAuthUser(req);
   if (!user) return NextResponse.json({ success: false, message: "Not authenticated." }, { status: 401 });
 
-  const allBookings = await getAllBookings();
-  const bookings = allBookings
-    .filter((b: any) => b.customerId === String(user._id))
-    .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const allBookings = await getAllBookings({ userId: String(user._id) });
+  const bookings = allBookings.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const enriched = await Promise.all(bookings.map(async (b: any) => {
-    const vehicle = await getVehicleById(b.vehicleId);
-    return { ...b, vehicleId: vehicle || b.vehicleId };
-  }));
-
-  return NextResponse.json({ success: true, bookings: enriched });
+  return NextResponse.json({ success: true, bookings });
 }
 
 export async function POST(req: NextRequest) {

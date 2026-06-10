@@ -9,15 +9,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Please provide email and password." }, { status: 400 });
 
     const user = await findUserByEmail(email);
-    if (!user || !comparePassword(user.password, password))
-      return NextResponse.json({ success: false, message: "Invalid email or password." }, { status: 401 });
+    if (!user) return NextResponse.json({ success: false, message: "Invalid email or password." }, { status: 401 });
+    const isMatch = await comparePassword(user.password, password);
+    if (!isMatch) return NextResponse.json({ success: false, message: "Invalid email or password." }, { status: 401 });
 
-    const token = signToken(user._id);
+    const token = signToken(String(user._id));
     return NextResponse.json({
       success: true,
       message: "Login successful!",
       token,
-      user: { _id: user._id, name: user.name, email: user.email, role: user.role },
+      user: { _id: String(user._id), name: user.name, email: user.email, role: user.role },
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
