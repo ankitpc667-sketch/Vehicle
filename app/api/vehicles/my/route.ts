@@ -7,7 +7,9 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ success: false, message: "Not authenticated." }, { status: 401 });
   if (user.role !== "driver") return NextResponse.json({ success: false, message: "Access denied." }, { status: 403 });
 
-  const all = await getAllVehicles({ driverId: String(user._id) });
+  // Use user._id as string to fetch vehicles belonging to the driver
+  const driverId = String(user._id);
+  const all = await getAllVehicles({ driverId });
   const vehicles = all.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   return NextResponse.json({ success: true, vehicles });
 }
